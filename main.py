@@ -53,25 +53,24 @@ mapa = Mapa(TAMANO_MAPA_X, TAMANO_MAPA_Y, TILE_SIZE)
 
 # Buscar una habitación válida para colocar al jugador
 if mapa.habitaciones and len(mapa.habitaciones) > 0:
-    # Intentar encontrar una celda de suelo (0) en la primera habitación
+    
     hab_inicial = mapa.habitaciones[0]
     encontrado = False
-    for intento in range(100):  # Buscar hasta 100 intentos
+    for intento in range(100):  
         jx = random.randint(hab_inicial.x + 1, hab_inicial.x + hab_inicial.w - 2)
         jy = random.randint(hab_inicial.y + 1, hab_inicial.y + hab_inicial.h - 2)
         if 0 <= jy < TAMANO_MAPA_Y and 0 <= jx < TAMANO_MAPA_X:
-            if mapa.matriz[jy][jx] == 0:  # Asegurar que es suelo
+            if mapa.matriz[jy][jx] == 0:
                 jx = jx * TILE_SIZE
                 jy = jy * TILE_SIZE
                 encontrado = True
                 break
-    
-    if not encontrado:
-        # Fallback: usar el centro de la habitación
+ # Fallback: usar el centro de la habitación si no se encuentra una celda de suelo
+       
         jx = hab_inicial.centerx * TILE_SIZE
         jy = hab_inicial.centery * TILE_SIZE
 else:
-    # Fallback extremo: colocar en una posición segura
+    
     jx = 5 * TILE_SIZE
     jy = 5 * TILE_SIZE
 

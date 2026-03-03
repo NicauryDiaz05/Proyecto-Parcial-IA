@@ -70,16 +70,14 @@ class Weapon():
     def update(self, player, camara):  
         poder = None
 
-        # Posicionar el arma en la mano del personaje
+    
         self.shape.center = player.shape.center
         
-        # Ajustar offset para que el arma esté en la mano
+        # posicionar el arma ligeramente hacia adelante dependiendo de la dirección del personaje
         if player.flip:
-            # Mirando hacia la izquierda - arma en la mano izquierda
             offset_x = player.shape.width * 0.3
             offset_y = -player.shape.height * 0.1
         else:
-            # Mirando hacia la derecha - arma en la mano derecha
             offset_x = -player.shape.width * 0.3
             offset_y = -player.shape.height * 0.1
 
