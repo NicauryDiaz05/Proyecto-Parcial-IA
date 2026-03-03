@@ -1,7 +1,6 @@
 import pygame 
 import constante
 import math
-import constante
 
 class Personaje:
     def __init__(self, x, y, animaciones):
@@ -10,115 +9,102 @@ class Personaje:
         self.estado = "idle"
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
-        self.image = self.animaciones[self.estado][self.frame_index]
+
+        if self.animaciones and self.estado in self.animaciones:
+            self.image = self.animaciones[self.estado][self.frame_index]
+        else:
+            self.image = pygame.Surface((32, 32))
+            self.image.fill((0, 255, 0))
+            
         self.shape = self.image.get_rect(center=(x, y))
-
-        self.camino_astar = []
-        self.indice_camino = 0
-        self.auto_seguir = False
-
-    def establecer_camino(self, camino):
-        self.camino_astar = camino
-        self.indice_camino = 0
-
-    def seguir_camino_astar(self, mapa):
-        if not self.auto_seguir or self.indice_camino >= len(self.camino_astar):
-            return
-
-        objetivo = self.camino_astar[self.indice_camino]
-        obj_x = objetivo.cordenadas[1]*32 + 16
-        obj_y = objetivo.cordenadas[0]*32 + 16
-
-        dx = obj_x - self.shape.centerx
-        dy = obj_y - self.shape.centery
-        dist = math.hypot(dx, dy)
-
-        if dist < 5:
-            self.indice_camino += 1
-            return
-
-        dx = int((dx/dist)*constante.VELOCIDAD)
-        dy = int((dy/dist)*constante.VELOCIDAD)
-        self.movimiento(dx, dy, mapa)
+        self.vida = 100
 
     def movimiento(self, dx, dy, mapa):
-
         if dx != 0:
             self.shape.x += dx
-            if self.colision(mapa):
-                self.shape.x -= dx
+            if self.colision(mapa): self.shape.x -= dx
             self.flip = dx < 0
 
         if dy != 0:
             self.shape.y += dy
-            if self.colision(mapa):
-                self.shape.y -= dy
+            if self.colision(mapa): self.shape.y -= dy
 
+        grid_x, grid_y = self.shape.centerx // mapa.tile_size, self.shape.centery // mapa.tile_size
+        if 0 <= grid_x < mapa.ancho and 0 <= grid_y < mapa.alto:
+            if mapa.matriz[grid_y][grid_x] == 9 and mapa.estado_trampa == 1:
+                self.vida -= 1
+                
     def colision(self, mapa):
-        for y in range(len(mapa)):
-            for x in range(len(mapa[0])):
-                if mapa[y][x] == 1:
-                    tile_rect = pygame.Rect(x*32, y*32, 32, 32)
-                    if self.shape.colliderect(tile_rect):
-                        return True
+        grid_x = self.shape.centerx // mapa.tile_size
+        grid_y = self.shape.centery // mapa.tile_size
+
+        if 0 <= grid_x < mapa.ancho and 0 <= grid_y < mapa.alto:
+            return mapa.matriz[grid_y][grid_x] in [1, 3, 6, 7, 8, 10]
         return False
 
     def update(self, estado="idle"):
-        if estado != self.estado:
-            self.estado = estado
-            self.frame_index = 0
+        if self.animaciones and estado in self.animaciones:
+            if estado != self.estado:
+                self.estado = estado
+                self.frame_index = 0
 
-        if pygame.time.get_ticks() - self.update_time > 100:
-            self.frame_index = (self.frame_index + 1) % len(self.animaciones[self.estado])
-            self.update_time = pygame.time.get_ticks()
-
-        self.image = self.animaciones[self.estado][self.frame_index]
+            if pygame.time.get_ticks() - self.update_time > 100:
+                self.frame_index = (self.frame_index + 1) % len(self.animaciones[self.estado])
+                self.update_time = pygame.time.get_ticks()
+            self.image = self.animaciones[self.estado][self.frame_index]
 
     def draw(self, surface, camara):
-        rect = camara.aplicar(self)
+        rect = pygame.Rect(self.shape.x - camara.offset_x, self.shape.y - camara.offset_y, self.shape.width, self.shape.height)
         surface.blit(pygame.transform.flip(self.image, self.flip, False), rect)
 
-
 class Weapon():
-    def __init__(self, image, imagen_poder_baston1):
+    def __init__(self, image, imagen_poder_baston1, weapon_length=40): 
         self.imagen_poder_baston1 = imagen_poder_baston1
         self.imagen_arma = image
         self.angulo = 0
-        self.imagen = pygame.transform.rotate(self.imagen_arma, self.angulo)
+        self.imagen = self.imagen_arma
         self.shape = self.imagen.get_rect() 
         self.disparada = False
-
-        self.weapon_length = 40  
+        self.weapon_length = weapon_length
 
     def update(self, player, camara):  
-        
         poder = None
 
-        # posicionar el arma en el centro del personaje
-        self.shape.center = player.shape.center 
-
-        if player.flip == False:
-            self.shape.x += player.shape.width / 4.5
-            self.shape.y += player.shape.height / 4.5
+        # Posicionar el arma en la mano del personaje
+        self.shape.center = player.shape.center
+        
+        # Ajustar offset para que el arma esté en la mano
+        if player.flip:
+            # Mirando hacia la izquierda - arma en la mano izquierda
+            offset_x = player.shape.width * 0.3
+            offset_y = -player.shape.height * 0.1
         else:
-            self.shape.x -= player.shape.width / 4.5
-            self.shape.y += player.shape.height / 4.5
+            # Mirando hacia la derecha - arma en la mano derecha
+            offset_x = -player.shape.width * 0.3
+            offset_y = -player.shape.height * 0.1
 
-        # calcular el ángulo hacia el mouse
+        self.shape.x += offset_x
+        self.shape.y += offset_y
+
+        # Calcular el ángulo hacia el mouse
         mouse_pos = pygame.mouse.get_pos()
         mouse_x = mouse_pos[0] + camara.offset_x
         mouse_y = mouse_pos[1] + camara.offset_y
         
-        distancia_x = mouse_x - self.shape.centerx
-        distancia_y = mouse_y - self.shape.centery
+        distancia_x = mouse_x - self.shape.centerx        
+        distancia_y = mouse_y - self.shape.centery    
 
         self.angulo = math.degrees(math.atan2(distancia_y, distancia_x))
         self.rotar_arma(player.flip)
         
-        # dectar los clicks para disparar el poder del baston
+        # Detectar los clicks para disparar el poder del baston
         if pygame.mouse.get_pressed()[0]:
-            if self.disparada == False:
-                # calcular posición de la bala en la punta del arma
+            tiempo_actual = pygame.time.get_ticks()
+            if not self.disparada and tiempo_actual >= getattr(self, 'cooldown_time', 0):  
+                self.cooldown_time = tiempo_actual + constante.COOLDOWN_PODER_BASTON1 
+                self.disparada = True  
+            
+                # Calcular posición de la bala en la punta del arma
                 rad = math.radians(self.angulo)
                 bullet_x = self.shape.centerx + math.cos(rad) * self.weapon_length
                 bullet_y = self.shape.centery + math.sin(rad) * self.weapon_length
@@ -129,14 +115,12 @@ class Weapon():
                     bullet_y,  
                     self.angulo
                 )
-                self.disparada = True
         else:
             self.disparada = False
-
+            
         return poder
       
     def rotar_arma(self, rotar):
-        
         centro = self.shape.center  
 
         if rotar:
@@ -148,10 +132,8 @@ class Weapon():
         self.shape = self.imagen.get_rect(center=centro)
              
     def draw(self, surface, camara):
-       
         rect = camara.aplicar(self)
         surface.blit(self.imagen, rect)
-
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, image, x, y, angle):
@@ -168,20 +150,16 @@ class Bullet(pygame.sprite.Sprite):
 
         self.velocidad = constante.VELOCIDAD_PODER
 
-        # calcular velocidad en x e y
         rad = math.radians(self.angulo)
         self.delta_x = self.velocidad * math.cos(rad)
         self.delta_y = self.velocidad * math.sin(rad)
 
     def update(self):
-       
         self.rect.x += self.delta_x
         self.rect.y += self.delta_y
 
-        # actualizar shape para colisiones
         self.shape = self.rect
 
-        # Eliminar bala si sale de la pantalla o del mapa
         if hasattr(constante, 'ANCHO_MAPA_PIXELES') and hasattr(constante, 'ALTO_MAPA_PIXELES'):
             if (self.rect.right < 0 or 
                 self.rect.left > constante.ANCHO_MAPA_PIXELES or 
@@ -190,6 +168,5 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
       
     def draw(self, ventana, camara):
-       
         rect = camara.aplicar(self)
         ventana.blit(self.image, rect)
