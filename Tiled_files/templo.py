@@ -124,10 +124,12 @@ class Mapa:
         self.trampas_info = []
         self.animaciones = {}
         self.colisiones = []
+        self.configuracion_grid = []
 
         self._cargar_animaciones()
         self._cargar_colisiones()
         self._crear_trampas()
+        self._generar_grid()
 
     # Animaciones 
 
@@ -151,7 +153,7 @@ class Mapa:
                         "timer": 0,
                     }
 
-    #coliciones
+    #coliciones 
 
     def _cargar_colisiones(self):
         for layer in self.tmx_data.layers:
@@ -159,10 +161,10 @@ class Mapa:
                 if layer.name.lower() == "colision":
                     for obj in layer:
                         rect = pygame.Rect(
-                            obj.x,
-                            obj.y,
-                            obj.width,
-                            obj.height,
+                            int(obj.x * self.escala),
+                            int(obj.y * self.escala),
+                            int(obj.width * self.escala),
+                            int(obj.height * self.escala),
                         )
                         self.colisiones.append(rect)
 
@@ -188,6 +190,21 @@ class Mapa:
 
                 self.trampas.append(rect)
                 self.trampas_info.append({"rect": rect, "ultimo": 0})
+
+    # Grid de navegacion para A*
+    def _generar_grid(self):
+        self.configuracion_grid = [[0] * self.ancho_tiles for _ in range(self.alto_tiles)]
+
+        for colision in self.colisiones:
+            tile_x_inicio = int(colision.left   // self.tile_size)
+            tile_y_inicio = int(colision.top    // self.tile_size)
+            tile_x_fin    = int(colision.right  // self.tile_size)
+            tile_y_fin    = int(colision.bottom // self.tile_size)
+
+            for ty in range(tile_y_inicio, tile_y_fin + 1):
+                for tx in range(tile_x_inicio, tile_x_fin + 1):
+                    if 0 <= ty < self.alto_tiles and 0 <= tx < self.ancho_tiles:
+                        self.configuracion_grid[ty][tx] = 1
 
     # animaciones actualizar 
 
