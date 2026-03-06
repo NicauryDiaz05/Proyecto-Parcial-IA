@@ -81,8 +81,7 @@ for i in range(11):
 
 
 
-
-   # animaciones de enemigos 1 y 2,escalas de imagenes Nicaury Diaz 23-SISN-2-028
+ # animaciones de enemigos 1 y 2,escalas de imagenes Nicaury Diaz 23-SISN-2-028
 
 # Attacking
 animacionesenemigo1 = {}
@@ -135,18 +134,6 @@ for i in range(11):
    animacionesenemigo1["Walking"].append(img)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # Dying
 animacionesenemigo2 = {}
 animacionesenemigo2["Dying"] = []
@@ -183,25 +170,23 @@ for i in range(11):
    img = escala_img(img, constante.SCALA_PERSONAJE)
    animacionesenemigo2["Running"].append(img)
 
-# SLASHING
-animacionesenemigo2["Slashing"] = []
-for i in range(11):
-   img = pygame.image.load(f"enemigos//esqueletos//Slashing//0_Skeleton_Warrior_Slashing_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
-   animacionesenemigo2["Slashing"].append(img)
-
-# THROWING
-animacionesenemigo2["Throwing"] = []
-for i in range(11):
-   img = pygame.image.load(f"enemigos//esqueletos//Slashing//0_Skeleton_Warrior_Throwing_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
-   animacionesenemigo2["Throwing"].append(img)
-
 # Walking
 animacionesenemigo2["Walking"] = []
 for i in range(23):
-   img = pygame.image.load(f"enemigos//esqueletos//Slashing//0_Skeleton_Warrior_Walking_{i:03}.png")
+   img = pygame.image.load(f"enemigos//esqueletos//Skeleton_Warrior//Walking//0_Skeleton_Warrior_Walking_{i:03}.png")
    img = escala_img(img, constante.SCALA_PERSONAJE)
    animacionesenemigo2["Walking"].append(img)
 
+# SLASHING
+animacionesenemigo2["Slashing"] = []
+for i in range(11):
+   img = pygame.image.load(f"enemigos//esqueletos//Skeleton_Warrior//Slashing//0_Skeleton_Warrior_Slashing_{i:03}.png")
+   img = escala_img(img, constante.SCALA_PERSONAJE)
+   animacionesenemigo2["Slashing"].append(img)
 
+
+
+
+
+
+  

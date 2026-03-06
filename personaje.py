@@ -22,41 +22,102 @@ class Personaje:
         self.shape = pygame.Rect(0, 0, ancho_hitbox, alto_hitbox)
         self.shape.center = rect_original.center
 
-        self.vida = 100
+        self.vida_max = 100
+        self.vida = self.vida_max
+        self.vivo = True
+
+        self.animaciones_bloqueantes = {
+            "kicking", "slashing", "throwing", "throw_air", "run_throw", "hurt", "dying"
+        }
+        self.animacion_bloqueada = False
+
+    def recibir_danio(self, cantidad):
+        if not self.vivo:
+            return
+        self.vida -= cantidad
+        if self.vida <= 0:
+            self.vida = 0
+            self.vivo = False
+            self.estado = "dying"
+            self.frame_index = 0
+            self.animacion_bloqueada = True
+# curar al enemigo un 20 de vida cada vez que gane una oleada 
+    def curar(self, cantidad):
+        if not self.vivo:
+            return
+        self.vida = min(self.vida + cantidad, self.vida_max)
 
     def actualizar_flip(self, dx):
         if dx < 0:  
             self.flip = True
         elif dx > 0:  
             self.flip = False
-       
+   # movimiento del jugador     
     def movimiento(self, dx, dy, mapa):
         self.actualizar_flip(dx)
 
         original_x = self.shape.x
         original_y = self.shape.y
 
-        # Movimiento en X
         self.shape.x += dx
         if mapa.verificar_colision(self.shape, 0, 0):
             self.shape.x = original_x
 
-        # Movimiento en Y
         self.shape.y += dy
         if mapa.verificar_colision(self.shape, 0, 0):
             self.shape.y = original_y
 
     def update(self, estado="idle"):
-        if self.animaciones and estado in self.animaciones:
-            if estado != self.estado:
-                self.estado = estado
-                self.frame_index = 0
+        if not self.animaciones:
+            return
 
+        if not self.vivo:
+            self.estado = "dying"
+            self.animacion_bloqueada = True
             if pygame.time.get_ticks() - self.update_time > 100:
-                self.frame_index = (self.frame_index + 1) % len(self.animaciones[self.estado])
                 self.update_time = pygame.time.get_ticks()
+                total_frames = len(self.animaciones["dying"])
+                if self.frame_index < total_frames - 1:
+                    self.frame_index += 1
+            self.image = self.animaciones["dying"][self.frame_index]
+            return
 
-            self.image = self.animaciones[self.estado][self.frame_index]
+        keys        = pygame.key.get_pressed()
+        mouse_click = pygame.mouse.get_pressed()[0]
+
+        if not self.animacion_bloqueada:
+
+            if keys[pygame.K_f]:
+                estado = "kicking"
+
+            elif keys[pygame.K_e]:
+                estado = "slashing"
+
+            elif keys[pygame.K_SPACE]:
+                estado = "throw_air"
+
+            elif mouse_click:
+                estado = "run_throw" if estado == "running" else "throwing"
+
+            if estado != self.estado and estado in self.animaciones:
+                self.estado              = estado
+                self.frame_index         = 0
+                self.animacion_bloqueada = estado in self.animaciones_bloqueantes
+
+        if pygame.time.get_ticks() - self.update_time > 100:
+            self.frame_index += 1
+            self.update_time  = pygame.time.get_ticks()
+
+            total_frames = len(self.animaciones[self.estado])
+
+            if self.frame_index >= total_frames:
+                if self.estado == "dying":
+                    self.frame_index = total_frames - 1
+                else:
+                    self.frame_index         = 0
+                    self.animacion_bloqueada = False
+
+        self.image = self.animaciones[self.estado][self.frame_index]
 
     def draw(self, surface, mapa):
         imagen = pygame.transform.flip(self.image, self.flip, False)
@@ -67,7 +128,27 @@ class Personaje:
         ))
 
         surface.blit(imagen, rect_dibujo)
+        self._draw_barra_vida(surface, mapa)
+# dibujo la barra de vida 
+    def _draw_barra_vida(self, surface, mapa):
+        barra_ancho = 40
+        barra_alto  = 5
+        bx = self.shape.centerx + mapa.offset_x - barra_ancho // 2
+        by = self.shape.top     + mapa.offset_y - 10
 
+        relleno = int(barra_ancho * max(self.vida, 0) / self.vida_max)
+
+        pygame.draw.rect(surface, (120, 0, 0), (bx, by, barra_ancho, barra_alto))
+
+        if self.vida > 50:
+            color = (0, 200, 0)
+        elif self.vida > 25:
+            color = (255, 165, 0)
+        else:
+            color = (220, 0, 0)
+
+        pygame.draw.rect(surface, color, (bx, by, relleno, barra_alto))
+        pygame.draw.rect(surface, (255, 255, 255), (bx, by, barra_ancho, barra_alto), 1)
 
 class Weapon():
     def __init__(self, image, imagen_poder_baston1, weapon_length=40):
@@ -107,7 +188,7 @@ class Weapon():
         distancia_y = mouse_y - self.shape.centery
 
         self.angulo = math.degrees(math.atan2(distancia_y, distancia_x))
-
+# limito el angulo de baston 
         if (distancia_x < 0 and not player.flip) or (distancia_x > 0 and player.flip):
             self.angulo = 90 if distancia_y > 0 else -90
             self.rotar_arma(player.flip)
@@ -145,8 +226,7 @@ class Weapon():
             (self.shape.x + mapa.offset_x,
              self.shape.y + mapa.offset_y)
         )
-
-
+# clase bala 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, image, x, y, angle):
         pygame.sprite.Sprite.__init__(self)
@@ -166,12 +246,22 @@ class Bullet(pygame.sprite.Sprite):
         self.delta_x = self.velocidad * math.cos(rad)
         self.delta_y = self.velocidad * math.sin(rad)
 
-    def update(self, mapa):
+    def update(self, mapa, enemigos=None):
         self.rect.x += self.delta_x
         self.rect.y += self.delta_y
         self.shape = self.rect
 
-        # Límites del mundo sin offset
+        if mapa.verificar_colision(self.shape, 0, 0):
+            self.kill()
+            return
+
+        if enemigos:
+            for enemigo in enemigos:
+                if enemigo.vivo and self.rect.colliderect(enemigo.shape):
+                    enemigo.recibir_danio(constante.DAÑO_BASTON1)
+                    self.kill()
+                    return
+
         if (self.rect.right < 0 or
             self.rect.left > mapa.ancho_px or
             self.rect.bottom < 0 or

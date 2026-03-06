@@ -5,7 +5,7 @@ import time
 from pytmx import TiledTileLayer
 import math
 
-
+#defino el estado del mapa y las codenadas dentro del mismo 
 class MapaEstado:
     def __init__(self, configuracion, cordenadas) -> None:
         self.configuracion = configuracion
@@ -22,7 +22,7 @@ class MapaEstado:
             y = self.cordenadas[1] + movimiento[1]
 
             if 0 <= y < self.tamano_y and 0 <= x < self.tamano_x:
-                if self.configuracion[y][x] in [0, 2, 4, 5, 9]: 
+                if self.configuracion[y][x] in [0, 2, 4, 5, 9]:
                     sucesores.append(MapaEstado(self.configuracion, [x, y]))
 
         return sucesores
@@ -38,6 +38,7 @@ class MapaEstado:
     def Costo(self, estado_final):
         return abs(self.cordenadas[0] - estado_final.cordenadas[0]) + abs(self.cordenadas[1] - estado_final.cordenadas[1])
 
+#nodos necesarios para el astar 
 class Nodo:
     def __init__(self, dato, padre=None, distancia=0):
         self.dato = dato
@@ -66,8 +67,9 @@ class Nodo:
 
     def __hash__(self) -> int:
         return hash(str(self.dato))
-    
-def Astar(estado_inicial, estado_final):
+
+# astar de mapa y los enemigos 
+def Astar(estado_inicial, estado_final, max_nodos=200):
     totalnodos = 1
     nodoactual = Nodo(estado_inicial, None, estado_inicial.Costo(estado_final))
     nodosgenerado = []
@@ -75,6 +77,9 @@ def Astar(estado_inicial, estado_final):
     heapq.heapify(nodosgenerado)
 
     while nodoactual.dato != estado_final:
+        if totalnodos > max_nodos:
+            return [], totalnodos
+
         sucesores = nodoactual.GenerarSucesores()
         totalnodos += len(sucesores)
 
@@ -84,10 +89,10 @@ def Astar(estado_inicial, estado_final):
                 heapq.heappush(nodosgenerado, temp)
 
         nodosvisitados.add(nodoactual)
-        
+
         if len(nodosgenerado) == 0:
             return [], totalnodos
-            
+
         while len(nodosgenerado) > 0 and nodoactual in nodosvisitados:
             nodoactual = heapq.heappop(nodosgenerado)
 
@@ -99,7 +104,7 @@ def Astar(estado_inicial, estado_final):
     camino.reverse()
     return camino, totalnodos
 
- #mapa 
+# clase mapa, colisiones del mapas , utilizo las trampas del mapa y las ineteraciones del mapa con el jugador 
 class Mapa:
     def __init__(self, templo, ancho_pantalla, alto_pantalla):
         self.tmx_data = pytmx.load_pygame(templo, pixelalpha=True)
@@ -110,9 +115,9 @@ class Mapa:
 
         escala_x = ancho_pantalla / (self.ancho_tiles * self.tile_size_original)
         escala_y = alto_pantalla / (self.alto_tiles * self.tile_size_original)
-        self.escala = min(escala_x, escala_y)
+        self.escala = alto_pantalla / (self.alto_tiles * self.tile_size_original)
 
-        self.tile_size = int(self.tile_size_original * self.escala)
+        self.tile_size = math.ceil(self.tile_size_original * self.escala)
 
         self.ancho_px = self.ancho_tiles * self.tile_size
         self.alto_px = self.alto_tiles * self.tile_size
@@ -130,8 +135,6 @@ class Mapa:
         self._cargar_colisiones()
         self._crear_trampas()
         self._generar_grid()
-
-    # Animaciones 
 
     def _cargar_animaciones(self):
         for gid, propiedades in self.tmx_data.tile_properties.items():
@@ -153,8 +156,6 @@ class Mapa:
                         "timer": 0,
                     }
 
-    #coliciones 
-
     def _cargar_colisiones(self):
         for layer in self.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup):
@@ -168,30 +169,24 @@ class Mapa:
                         )
                         self.colisiones.append(rect)
 
-    # Trampas 
     def _crear_trampas(self):
         for layer in self.tmx_data.visible_layers:
             if not isinstance(layer, TiledTileLayer):
                 continue
-
             if "trap" not in layer.name.lower():
                 continue
-
             for x, y, gid in layer:
                 if gid == 0:
                     continue
-
                 rect = pygame.Rect(
                     x * self.tile_size,
                     y * self.tile_size,
                     self.tile_size,
                     self.tile_size,
                 )
-
                 self.trampas.append(rect)
                 self.trampas_info.append({"rect": rect, "ultimo": 0})
 
-    # Grid de navegacion para A*
     def _generar_grid(self):
         self.configuracion_grid = [[0] * self.ancho_tiles for _ in range(self.alto_tiles)]
 
@@ -206,58 +201,38 @@ class Mapa:
                     if 0 <= ty < self.alto_tiles and 0 <= tx < self.ancho_tiles:
                         self.configuracion_grid[ty][tx] = 1
 
-    # animaciones actualizar 
-
     def actualizar_animaciones(self, dt):
         for gid, anim in self.animaciones.items():
             anim["timer"] += dt
             _, duracion_actual = anim["frames"][anim["indice"]]
-
             if anim["timer"] >= duracion_actual:
                 anim["timer"] = 0
                 anim["indice"] = (anim["indice"] + 1) % len(anim["frames"])
-
-    # obtene tiles 
 
     def _get_tile_image(self, gid):
         if gid in self.animaciones:
             anim = self.animaciones[gid]
             surface, _ = anim["frames"][anim["indice"]]
             return surface
-
         img = self.tmx_data.get_tile_image_by_gid(gid)
         if img:
-            return pygame.transform.scale(
-                img, (self.tile_size, self.tile_size)
-            )
-
+            return pygame.transform.scale(img, (self.tile_size, self.tile_size))
         return None
-
-    #Verifica coliciones 
 
     def verificar_colision(self, rect_jugador, dx, dy):
         rect_temp = rect_jugador.copy()
         rect_temp.x += dx
         rect_temp.y += dy
 
-        # Colisión contra objetos
         for colision in self.colisiones:
             if rect_temp.colliderect(colision):
                 return True
 
-        # Límites del mapa 
-        if (
-            rect_temp.left < 0
-            or rect_temp.right > self.ancho_px
-            or rect_temp.top < 0
-            or rect_temp.bottom > self.alto_px
-        ):
+        if (rect_temp.left < 0 or rect_temp.right > self.ancho_px or
+                rect_temp.top < 0 or rect_temp.bottom > self.alto_px):
             return True
 
         return False
-
-    # INTERACCIONES
-
 
     def actualizar_interacciones(self, jugador):
         tiempo_actual = time.time()
@@ -266,31 +241,24 @@ class Mapa:
         for info in self.trampas_info:
             if tiempo_actual - info["ultimo"] >= cooldown:
                 if jugador.shape.colliderect(info["rect"]):
-                    jugador.vida -= 5
+                    jugador.recibir_danio(5)
                     info["ultimo"] = tiempo_actual
-
-    
-    # DIBUJADO
 
     def draw(self, surface, debug=False):
         for layer in self.tmx_data.visible_layers:
             if not isinstance(layer, TiledTileLayer):
                 continue
-
             if "colision" in layer.name.lower():
                 continue
-
             for x, y, gid in layer:
                 if gid == 0:
                     continue
-
                 tile = self._get_tile_image(gid)
                 if tile:
                     screen_x = self.offset_x + x * self.tile_size
                     screen_y = self.offset_y + y * self.tile_size
                     surface.blit(tile, (screen_x, screen_y))
 
-        # Dibujar colisiones en debug (con offset SOLO visual)
         if debug:
             for colision in self.colisiones:
                 debug_rect = colision.copy()
