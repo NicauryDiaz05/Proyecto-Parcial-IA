@@ -88,49 +88,49 @@ animacionesenemigo1 = {}
 animacionesenemigo1["Attacking"] = []
 for i in range(11):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Attacking//Wraith_03_Attack_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Attacking"].append(img)
 
 # IDLE
 animacionesenemigo1["idle"] = []
 for i in range(11):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//idle//Wraith_03_idle_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["idle"].append(img)
 
 # HURT
 animacionesenemigo1["Hurt"] = []
 for i in range(11):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Hurt//Wraith_03_Hurt_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Hurt"].append(img)
 
 # Dying 
 animacionesenemigo1["Dying"] = []
 for i in range(14):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Dying//Wraith_03_Dying_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Dying"].append(img)
 
 #Casting Spells
 animacionesenemigo1["Casting Spells"] = []
 for i in range(17):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Casting Spells//Wraith_03_Casting Spells_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Casting Spells"].append(img)
 
 # Taunt
 animacionesenemigo1["Taunt"] = []
 for i in range(17):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Taunt//Wraith_03_Taunt_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Taunt"].append(img)
 
 # Walking
 animacionesenemigo1["Walking"] = []
 for i in range(11):
    img = pygame.image.load(f"enemigos//fantasma//Wraith_03//Walking//Wraith_03_Moving Forward_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
+   img = escala_img(img, constante.SCALA_ENEMIGO)
    animacionesenemigo1["Walking"].append(img)
 
 

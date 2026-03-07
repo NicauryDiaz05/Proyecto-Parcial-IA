@@ -42,8 +42,36 @@ def pantalla_victoria(surface, ancho, alto):
     font_pequena = pygame.font.Font(None, 36)
 
     texto1 = font_grande.render("¡VICTORIA!", True, (255, 215, 0))
-    texto2 = font_pequena.render("Has escapado del Templo de las Sombras", True, (200, 200, 200))
+    texto2 = font_pequena.render("Has escapado del Templo de las Sombras", True, (150, 150, 150))
     texto3 = font_pequena.render("Presiona ESC para salir", True, (150, 150, 150))
+
+    surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
+    surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
+    surface.blit(texto3, texto3.get_rect(center=(ancho // 2, alto // 2 + 65)))
+
+def pantalla_game_over(surface, ancho, alto):
+    surface.fill((10, 10, 30))
+    font_grande  = pygame.font.Font(None, 80)
+    font_pequena = pygame.font.Font(None, 36)
+
+    texto1 = font_grande.render("¡Perdiste!", True, (220, 20, 60))
+    texto2 = font_pequena.render("Has caido en el templo de las sombras", True, (150, 150, 150))
+    texto3 = font_pequena.render("Presiona la R para reiniciar la partida", True, (150, 150, 150))
+
+    surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
+    surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
+    surface.blit(texto3, texto3.get_rect(center=(ancho // 2, alto // 2 + 65)))
+
+
+    
+def pantalla_inicio(surface, ancho, alto):
+    surface.fill((10, 10, 30))
+    font_grande  = pygame.font.Font(None, 80)
+    font_pequena = pygame.font.Font(None, 36)
+
+    texto1 = font_grande.render("¡Bienvenido!", True, (220, 20, 60))
+    texto2 = font_pequena.render("Que inicie la aventura", True, (150, 150, 150))
+    texto3 = font_pequena.render("Presione Enter para comenzar", True, (150, 150, 150))
 
     surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
     surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
@@ -110,7 +138,10 @@ def reiniciar_juego(ruta_mapa, ancho, alto):
     jy = 5 * mapa.tile_size
     jugador = Personaje(jx, jy, animaciones)
 
-    return mapa, jugador
+    grupos_poder.empty()
+    enemigos = crear_oleada(mapa, jugador, 1, imagen_proyectil_enemigo)
+
+    return mapa, jugador, enemigos
 # -------------------------------------------------------------------------LOOP Primcipal---------------------------------------------------------------------------------
 pygame.init()
 ventana = pygame.display.set_mode((constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA))
@@ -119,11 +150,12 @@ Fullscreen = False
 
 JUGANDO = 1
 VICTORIA = 2
-estado_juego = JUGANDO
+Game_over = 3
+Inicio = 4
+estado_juego = Inicio
 
 RUTA_MAPA = "Tiled_files//templo.tmx"
 
-mapa, jugador = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
 
 imagen_baston1 = pygame.image.load("armas//staves_1//5.png").convert_alpha()
 imagen_baston1 = escala_img(imagen_baston1, constante.SCALA_BASTON1)
@@ -137,13 +169,13 @@ grupos_poder = pygame.sprite.Group()
 imagen_proyectil_enemigo = pygame.image.load(constante.RUTA_PROYECTIL_ENEMIGO).convert_alpha()
 imagen_proyectil_enemigo = escala_img(imagen_proyectil_enemigo, constante.SCALA_PROYECTIL_ENEMIGO)
 
+mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+
 mover_izquierda = mover_derecha = mover_arriba = mover_abajo = False
 reloj = pygame.time.Clock()
 run = True
 
 numero_oleada = 1
-enemigos = crear_oleada(mapa, jugador, numero_oleada, imagen_proyectil_enemigo)
-
 puerta_rect  = None
 juego_ganado = False
 
@@ -207,11 +239,24 @@ while run:
 
             if not jugador.vivo:
                 mover_izquierda = mover_derecha = mover_arriba = mover_abajo = False
-        
+       
+        elif estado_juego == Inicio:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+               estado_juego = JUGANDO
+
         elif estado_juego == VICTORIA:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 run = False
-    
+
+        elif estado_juego == Game_over:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+                numero_oleada = 1
+                puerta_rect   = None
+                juego_ganado  = False
+                estado_juego  = JUGANDO
+               
+
     ventana.fill(constante.COLOR_FONDO)
     
     if estado_juego == JUGANDO:
@@ -238,6 +283,9 @@ while run:
                 enemigo.update_proyectiles(mapa, jugador)
 
         enemigos = [e for e in enemigos if e.vivo]
+   
+        if not jugador.vivo:
+            estado_juego = Game_over
 
         if jugador.vivo and len(enemigos) == 0 and not juego_ganado:
             if numero_oleada < MAX_OLEADAS:
@@ -277,7 +325,7 @@ while run:
         if mostrar_texto_oleada:
             if pygame.time.get_ticks() - timer_texto_oleada < DURACION_TEXTO_OLEADA:
                 if puerta_rect and numero_oleada == MAX_OLEADAS:
-                    texto = font_oleada.render("¡Encuentra la salida!", True, (255, 215, 0))
+                    texto = font_oleada.render("¡Mata a todos y Encuentra la salida!", True, (255, 215, 0))
                 else:
                     texto = font_oleada.render(f"¡Oleada {numero_oleada}!", True, (255, 80, 80))
                 rect_texto = texto.get_rect(center=(constante.WIDTH_VENTANA // 2, constante.HEIGHT_VENTANA // 3))
@@ -287,6 +335,12 @@ while run:
     
     elif estado_juego == VICTORIA:
         pantalla_victoria(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+
+    elif estado_juego == Game_over:
+        pantalla_game_over(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+        
+    elif estado_juego == Inicio:
+        pantalla_inicio(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)    
     
     pygame.display.update()
 
