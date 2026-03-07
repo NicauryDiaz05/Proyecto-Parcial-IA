@@ -35,7 +35,7 @@ def draw_puerta(surface, puerta_rect, mapa):
     label_rect = label.get_rect(center=rect_pantalla.center)
     surface.blit(label, label_rect)
 
-
+# Pantallas de juego
 def pantalla_victoria(surface, ancho, alto):
     surface.fill((10, 10, 30))
     font_grande  = pygame.font.Font(None, 80)
@@ -43,7 +43,7 @@ def pantalla_victoria(surface, ancho, alto):
 
     texto1 = font_grande.render("¡VICTORIA!", True, (255, 215, 0))
     texto2 = font_pequena.render("Has escapado del Templo de las Sombras", True, (150, 150, 150))
-    texto3 = font_pequena.render("Presiona ESC para salir", True, (150, 150, 150))
+    texto3 = font_pequena.render("Presiona ESC para volver a la pantalla de inicio", True, (150, 150, 150))
 
     surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
     surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
@@ -76,6 +76,18 @@ def pantalla_inicio(surface, ancho, alto):
     surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
     surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
     surface.blit(texto3, texto3.get_rect(center=(ancho // 2, alto // 2 + 65)))
+
+def pantalla_Pausar(surface, ancho, alto):
+    surface.fill((10, 10, 30))
+    font_grande  = pygame.font.Font(None, 80)
+    font_pequena = pygame.font.Font(None, 36)
+
+    texto1 = font_grande.render("¡Pausa!", True, (220, 20, 60))
+    texto2 = font_pequena.render("Presione la barra de espacio para continua la aventura", True, (150, 150, 150))
+
+    surface.blit(texto1, texto1.get_rect(center=(ancho // 2, alto // 2 - 60)))
+    surface.blit(texto2, texto2.get_rect(center=(ancho // 2, alto // 2 + 20)))
+
 
 # hago que los enemigos apareza de manera aleatoria en el mpa pero que no este serca del jugador 
 def posiciones_aleatorias(mapa, cantidad, jugador, distancia_minima_tiles=6):
@@ -131,7 +143,7 @@ def crear_oleada(mapa, jugador, numero_oleada, imagen_proyectil_enemigo):
     return lista
 
 # esta reinicia el juego pero aun no la tengo en funcionamiento , lo hare cuando aggrege las pantallas
-def reiniciar_juego(ruta_mapa, ancho, alto):
+def reiniciar_juego(ruta_mapa, ancho, alto,grupos_poder, imagen_proyectil_enemigo):
     mapa = Mapa(ruta_mapa, ancho, alto)
 
     jx = 5 * mapa.tile_size
@@ -144,6 +156,7 @@ def reiniciar_juego(ruta_mapa, ancho, alto):
     return mapa, jugador, enemigos
 # -------------------------------------------------------------------------LOOP Primcipal---------------------------------------------------------------------------------
 pygame.init()
+pygame.mixer.init()
 ventana = pygame.display.set_mode((constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA))
 pygame.display.set_caption("El Templo De las Sombras")
 Fullscreen = False
@@ -152,6 +165,7 @@ JUGANDO = 1
 VICTORIA = 2
 Game_over = 3
 Inicio = 4
+Pausar = 5 
 estado_juego = Inicio
 
 RUTA_MAPA = "Tiled_files//templo.tmx"
@@ -169,7 +183,7 @@ grupos_poder = pygame.sprite.Group()
 imagen_proyectil_enemigo = pygame.image.load(constante.RUTA_PROYECTIL_ENEMIGO).convert_alpha()
 imagen_proyectil_enemigo = escala_img(imagen_proyectil_enemigo, constante.SCALA_PROYECTIL_ENEMIGO)
 
-mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA, grupos_poder, imagen_proyectil_enemigo)
 
 mover_izquierda = mover_derecha = mover_arriba = mover_abajo = False
 reloj = pygame.time.Clock()
@@ -184,31 +198,42 @@ mostrar_texto_oleada = True
 timer_texto_oleada   = pygame.time.get_ticks()
 DURACION_TEXTO_OLEADA = 2500
 
+pygame.mixer_music.load("Tiled_files//musica-del-templo.mp3")
+pygame.mixer_music.play(-1)
 
+sonido_disparo = pygame.mixer.Sound("armas//Staves_1//disparo_baston.mp3")
 while run:
     dt = reloj.tick(constante.FPS)
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        
+
+#Eventos de teclado dentro del juego 
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+           if not Fullscreen:
+              ventana = pygame.display.set_mode((0, 0), pygame.FULLSCREEN) 
+              constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA = ventana.get_size()
+              Fullscreen = True
+           else:
+              ventana = pygame.display.set_mode((constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA))
+              Fullscreen = False
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_TAB: 
+            pygame.display.iconify()
+
         if estado_juego == JUGANDO:
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:  
+                    estado_juego = Pausar
+
                 if jugador.vivo:
                     if event.key == pygame.K_a: mover_izquierda = True
                     if event.key == pygame.K_d: mover_derecha = True
                     if event.key == pygame.K_w: mover_arriba = True
                     if event.key == pygame.K_s: mover_abajo = True
-
-                if event.key == pygame.K_F11:
-                    if not Fullscreen:
-                        ventana = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                        constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA = ventana.get_size()
-                        Fullscreen = True
-                    else:
-                        ventana = pygame.display.set_mode((constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA))
-                        Fullscreen = False
-
+                if event.key == pygame.K_F11: 
                     tile_jx = int(jugador.shape.centerx // mapa.tile_size)
                     tile_jy = int(jugador.shape.centery // mapa.tile_size)
 
@@ -217,7 +242,7 @@ while run:
                          int(e.shape.centery // mapa.tile_size))
                         for e in enemigos
                     ]
-
+            
                     mapa = Mapa(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
 
                     jugador.shape.centerx = tile_jx * mapa.tile_size + mapa.tile_size // 2
@@ -242,24 +267,36 @@ while run:
        
         elif estado_juego == Inicio:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+               mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA, grupos_poder, imagen_proyectil_enemigo)
+               numero_oleada = 1
+               puerta_rect   = None
+               juego_ganado  = False
+               mostrar_texto_oleada = True
+               timer_texto_oleada   = pygame.time.get_ticks()
                estado_juego = JUGANDO
 
         elif estado_juego == VICTORIA:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                run = False
+               estado_juego = Inicio
 
         elif estado_juego == Game_over:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+                mapa, jugador, enemigos = reiniciar_juego(RUTA_MAPA, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA,grupos_poder, imagen_proyectil_enemigo)
                 numero_oleada = 1
                 puerta_rect   = None
                 juego_ganado  = False
                 estado_juego  = JUGANDO
+
+        elif estado_juego == Pausar: 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    estado_juego = JUGANDO        
                
 
     ventana.fill(constante.COLOR_FONDO)
     
     if estado_juego == JUGANDO:
+ #--------------------------------------------------------- ACTUALIZACIÓN ------------------------------------------------------------------------
         delta_x = (constante.VELOCIDAD if mover_derecha else 0) - (constante.VELOCIDAD if mover_izquierda else 0)
         delta_y = (constante.VELOCIDAD if mover_abajo else 0) - (constante.VELOCIDAD if mover_arriba else 0)
 
@@ -269,10 +306,15 @@ while run:
         estado_actual = "running" if (delta_x != 0 or delta_y != 0) else "idle"
         jugador.update(estado_actual)
 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_f] or keys[pygame.K_e]:
+           jugador.atacar_cuerpo_a_cuerpo(enemigos, constante.DAÑO_BASTON1)
+
         if jugador.vivo:
             poder = baston1.update(jugador, mapa)
             if poder:
                 grupos_poder.add(poder)
+                sonido_disparo.play()
 
         for bala in list(grupos_poder):
             bala.update(mapa, enemigos)
@@ -306,13 +348,14 @@ while run:
         mapa.actualizar_animaciones(dt)
         mapa.actualizar_interacciones(jugador)
         mapa.draw(ventana, debug=False)
-
+#------------------------------------------------------------DIBUJAR EN PANTALLA-----------------------------------------------
         jugador.draw(ventana, mapa)
         if jugador.vivo:
             baston1.draw(ventana, mapa)
 
         for poder in grupos_poder:
             poder.draw(ventana, mapa)
+           
 
         for enemigo in enemigos:
             enemigo.draw(ventana, mapa)
@@ -325,14 +368,17 @@ while run:
         if mostrar_texto_oleada:
             if pygame.time.get_ticks() - timer_texto_oleada < DURACION_TEXTO_OLEADA:
                 if puerta_rect and numero_oleada == MAX_OLEADAS:
-                    texto = font_oleada.render("¡Mata a todos y Encuentra la salida!", True, (255, 215, 0))
+                    texto = font_oleada.render("¡Felicidades los venciste a todos,!Ve a la salida!", True, (255, 215, 0))
                 else:
                     texto = font_oleada.render(f"¡Oleada {numero_oleada}!", True, (255, 80, 80))
                 rect_texto = texto.get_rect(center=(constante.WIDTH_VENTANA // 2, constante.HEIGHT_VENTANA // 3))
                 ventana.blit(texto, rect_texto)
             else:
                 mostrar_texto_oleada = False
-    
+
+                
+#------------------------------------------------------------DIBUJAR LOS ESTADOS EN PANTALLA----------------------------------------------- 
+
     elif estado_juego == VICTORIA:
         pantalla_victoria(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
 
@@ -341,7 +387,10 @@ while run:
         
     elif estado_juego == Inicio:
         pantalla_inicio(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)    
-    
+
+    elif estado_juego == Pausar:
+        pantalla_Pausar(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+
     pygame.display.update()
 
 pygame.quit()

@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-EL_TEMPLO_DELAS_SOMPRAS//__pycache__/
 # C extensions
 *.so
 

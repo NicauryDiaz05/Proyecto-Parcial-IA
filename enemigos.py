@@ -54,7 +54,7 @@ class CondicionDetectaJugador(Nodo):
         return NodoEstado.EXITO if d <= enemigo.rango_deteccion else NodoEstado.FALLO
 
 
-class CondicionEnRangoAtaqueMelee(Nodo):
+class CondicionEnRangoAtaqueEsqueleto(Nodo):
     def ejecutar(self, enemigo, jugador, mapa, cfg):
         d = enemigo._distancia_al_jugador(jugador)
         return NodoEstado.EXITO if d <= enemigo.rango_ataque else NodoEstado.FALLO
@@ -128,7 +128,7 @@ class AccionPerseguir(Nodo):
         return NodoEstado.EXITO
 
 
-class AccionAtacarMelee(Nodo):
+class AccionAtacarEsqueleto(Nodo):
     def ejecutar(self, enemigo, jugador, mapa, cfg):
         tiempo_actual = pygame.time.get_ticks()
         enemigo.actualizar_flip(jugador.shape.centerx - enemigo.shape.centerx)
@@ -172,10 +172,14 @@ class AccionPatrullarFantasma(Nodo):
 
         return NodoEstado.EXITO
 
-# aplicadoo el astar par detectar y perseguir al personaje 
+# aplicadoo el astar par detectar y perseguir al personaje del fantasma
 class AccionTauntYPerseguir(Nodo):
     def ejecutar(self, enemigo, jugador, mapa, cfg):
         tiempo_actual = pygame.time.get_ticks()
+
+        if enemigo._distancia_al_jugador(jugador) <= enemigo.rango_disparo:
+            enemigo.taunt_hecho = False
+            return NodoEstado.FALLO
 
         if not enemigo.taunt_hecho:
             enemigo._set_estado_anim("Taunt", forzar=True)
@@ -205,13 +209,12 @@ class AccionDisparar(Nodo):
     def ejecutar(self, enemigo, jugador, mapa, cfg):
         tiempo_actual = pygame.time.get_ticks()
         enemigo.actualizar_flip(jugador.shape.centerx - enemigo.shape.centerx)
-
         if tiempo_actual - enemigo.ultimo_ataque >= enemigo.cooldown_disparo:
             enemigo.ultimo_ataque = tiempo_actual
             angulo = enemigo._angulo_hacia_jugador(jugador)
             rad    = math.radians(angulo)
-            bx = enemigo.shape.centerx + math.cos(rad) * (enemigo.shape.width  * 0.6)
-            by = enemigo.shape.centery + math.sin(rad) * (enemigo.shape.height * 0.6)
+            bx = enemigo.shape.centerx + math.cos(rad) * (enemigo.shape.width  * 1.2)
+            by = enemigo.shape.centery + math.sin(rad) * (enemigo.shape.height * 1.2)
             enemigo.proyectiles.append(
                 BulletEnemigo(enemigo.imagen_proyectil, bx, by, angulo)
             )
@@ -382,8 +385,8 @@ class Enemigoesqueleto(Enemigo):
             Secuencia([CondicionRecibioGolpe(),
                        AccionHurt()]),
             Secuencia([CondicionDetectaJugador(),
-                       CondicionEnRangoAtaqueMelee(),
-                       AccionAtacarMelee()]),
+                       CondicionEnRangoAtaqueEsqueleto(),
+                       AccionAtacarEsqueleto()]),
             Secuencia([CondicionDetectaJugador(),
                        AccionPerseguir()]),
             AccionPatrullar(),
@@ -422,8 +425,9 @@ class Enemigofantasma(Enemigo):
                        AccionMorir()]),
             Secuencia([CondicionRecibioGolpe(),
                        AccionHurt()]),
-            Secuencia([CondicionDemasiadoCerca(),
-                       AccionHuir()]),
+            Secuencia([CondicionDetectaJugador(),
+                      CondicionDemasiadoCerca(),
+                      AccionHuir()]),
             Secuencia([CondicionDetectaJugador(),
                        CondicionEnRangoDisparo(),
                        AccionDisparar()]),
@@ -435,15 +439,15 @@ class Enemigofantasma(Enemigo):
     def update_enemigo(self, jugador, mapa, configuracion_grid):
         if self._distancia_al_jugador(jugador) > self.rango_deteccion:
             self.taunt_hecho = False
-
+       
         self.arbol.ejecutar(self, jugador, mapa, configuracion_grid)
         self.update(self._estado_anim_actual)
 
     def update_proyectiles(self, mapa, jugador):
         for p in self.proyectiles[:]:
             p.update(mapa, jugador)
-            if not p.alive():
-                self.proyectiles.remove(p)
+            if p.muerto:
+              self.proyectiles.remove(p)
 
     def draw(self, surface, mapa):
         if not self.vivo:
@@ -467,24 +471,27 @@ class BulletEnemigo(pygame.sprite.Sprite):
         rad = math.radians(self.angulo)
         self.delta_x = self.velocidad * math.cos(rad)
         self.delta_y = self.velocidad * math.sin(rad)
+        self.frames_vivo = 0
+        self.muerto = False
 
     def update(self, mapa, jugador):
         self.rect.x += self.delta_x
         self.rect.y += self.delta_y
         self.shape   = self.rect
+        self.frames_vivo += 1
 
-        if mapa.verificar_colision(self.shape, 0, 0):
-            self.kill()
+        if self.frames_vivo > 3 and mapa.verificar_colision(self.shape, 0, 0):
+            self.muerto = True
             return
 
-        if self.rect.colliderect(jugador.shape):
+        if self.frames_vivo > 3 and self.rect.colliderect(jugador.shape):
             jugador.recibir_danio(constante.DAÑO_PROYECTIL_ENEMIGO)
-            self.kill()
+            self.muerto = True
             return
 
         if (self.rect.right  < 0 or self.rect.left   > mapa.ancho_px or
                 self.rect.bottom < 0 or self.rect.top    > mapa.alto_px):
-            self.kill()
+            self.muerto = True
 
     def draw(self, ventana, mapa):
         ventana.blit(self.image,

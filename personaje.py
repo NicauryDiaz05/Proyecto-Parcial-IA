@@ -150,6 +150,11 @@ class Personaje:
         pygame.draw.rect(surface, color, (bx, by, relleno, barra_alto))
         pygame.draw.rect(surface, (255, 255, 255), (bx, by, barra_ancho, barra_alto), 1)
 
+    def atacar_cuerpo_a_cuerpo(self, enemigos, daño):
+        for enemigo in enemigos:
+         if enemigo.vivo and self.shape.colliderect(enemigo.shape):
+            enemigo.recibir_danio(daño)
+
 class Weapon():
     def __init__(self, image, imagen_poder_baston1, weapon_length=40):
         self.imagen_poder_baston1 = imagen_poder_baston1

@@ -61,13 +61,6 @@ for i in range(11):
    img = escala_img(img, constante.SCALA_PERSONAJE)
    animaciones["throwing"].append(img)
 
-# THROWING IN THE AIR
-animaciones["throw_air"] = []
-for i in range(11):
-   img = pygame.image.load(f"player_heroe//Dark_Oracle_3//Throwing in The Air//0_Dark_Oracle_Throwing in The Air_{i:03}.png")
-   img = escala_img(img, constante.SCALA_PERSONAJE)
-   animaciones["throw_air"].append(img)
-
 
 # RUN THROWING
 animaciones["run_throw"] = []
