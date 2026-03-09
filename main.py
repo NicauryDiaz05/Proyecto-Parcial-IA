@@ -1,6 +1,7 @@
 import pygame
 import constante
 import random
+import math
 from personaje import Personaje
 from enemigos import Enemigoesqueleto, Enemigofantasma 
 from personaje import Weapon
@@ -20,21 +21,24 @@ def draw_ui(surface, vida, oleada):
     surface.blit(text_oleada, (10, 30))
 
 
-def draw_puerta(surface, puerta_rect, mapa):
+def draw_puerta(surface, puerta_rect, mapa,tick = 0):
     rect_pantalla = pygame.Rect(
         puerta_rect.x + mapa.offset_x,
         puerta_rect.y + mapa.offset_y,
         puerta_rect.width,
         puerta_rect.height,
     )
-    pygame.draw.rect(surface, (180, 120, 30), rect_pantalla)
-    pygame.draw.rect(surface, (255, 215, 0),  rect_pantalla, 3)
 
-    font = pygame.font.Font(None, 18)
-    label = font.render("SALIDA", True, (255, 255, 255))
-    label_rect = label.get_rect(center=rect_pantalla.center)
-    surface.blit(label, label_rect)
+    p = abs(math.sin(tick * 0.05))
+    pygame.draw.rect(surface, (70, 35, 10), rect_pantalla.inflate(4, 4), border_radius=5)
+    pygame.draw.rect(surface, (150, 80, 20), rect_pantalla, border_radius=4)
+    pygame.draw.rect(surface, (120, 60, 15), rect_pantalla.inflate(-14, -rect_pantalla.height//2), border_radius=3)
+    pygame.draw.rect(surface, (int(200+55*p), int(160+55*p), 30), rect_pantalla, 2, border_radius=4)
+    pygame.draw.circle(surface, (int(180+75*p), 140, 40), (rect_pantalla.right-10, rect_pantalla.centery), 5)
 
+    font = pygame.font.Font(None, 15)
+    surface.blit(font.render("SALIDA", True, (255, 220, 80)), 
+                 font.render("SALIDA", True, (0,0,0)).get_rect(center=(rect_pantalla.centerx, rect_pantalla.y+10)))
 # Pantallas de juego
 def pantalla_victoria(surface, ancho, alto):
     surface.fill((10, 10, 30))
@@ -192,6 +196,7 @@ run = True
 numero_oleada = 1
 puerta_rect  = None
 juego_ganado = False
+tick = 0
 
 font_oleada = pygame.font.Font(None, 52)
 mostrar_texto_oleada = True
@@ -363,7 +368,7 @@ while run:
         draw_ui(ventana, vida=jugador.vida, oleada=numero_oleada)
 
         if puerta_rect:
-            draw_puerta(ventana, puerta_rect, mapa)
+            draw_puerta(ventana, puerta_rect, mapa, tick)
 
         if mostrar_texto_oleada:
             if pygame.time.get_ticks() - timer_texto_oleada < DURACION_TEXTO_OLEADA:
@@ -390,6 +395,8 @@ while run:
 
     elif estado_juego == Pausar:
         pantalla_Pausar(ventana, constante.WIDTH_VENTANA, constante.HEIGHT_VENTANA)
+
+    tick += 1 
 
     pygame.display.update()
 

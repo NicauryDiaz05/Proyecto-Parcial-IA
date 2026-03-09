@@ -11,6 +11,8 @@
 
 “El Templo de las Sombras”
 
+https://youtu.be/d-VnIGhI36U - Video explicativo 
+
 1. Concepto General
 
 “El Templo de las Sombras” es un juego de exploración y supervivencia en el que el jugador debe escapar de un antiguo templo en ruinas mientras enfrenta enemigos inteligentes que patrullan las diferentes habitaciones.
